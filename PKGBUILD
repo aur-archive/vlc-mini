@@ -1,0 +1,97 @@
+# -*- shell-script -*-
+#
+# Contributor: Adrian C. <anrxc..sysphere.org>
+
+basename=vlc
+pkgname=vlc-mini
+pkgver=2.1.5
+pkgrel=1
+pkgdesc="A MPEG, VCD, DVD and DivX player with minimal dependencies"
+arch=("i686" "x86_64")
+url="http://www.videolan.org/vlc/"
+license=("GPL2")
+depends=("ffmpeg" "libmad" "qt4" "libdvdread" "libxml2"
+         "a52dec" "x264" "libmpeg2" "v4l-utils" "live-media"
+         "libxcb" "flac" "faad2" "lua")
+makedepends=("pkgconfig" "live-media" "lirc-utils" "ncurses")
+optdepends=("libdvdcss: for decoding encrypted DVDs"
+            "lirc-utils: for lirc plugin"
+            "ncurses: for ncurses interface support"
+            "lua-socket: for http interface")
+provides=("vlc")
+conflicts=("vlc")
+backup=("usr/share/vlc/lua/http/.hosts"
+        "usr/share/vlc/lua/http/dialogs/.hosts")
+options=("!libtool" "!emptydirs")
+install="${pkgname}.install"
+source=("http://download.videolan.org/pub/videolan/${basename}/${pkgver/.a}/${basename}-${pkgver/.a/a}.tar.xz"
+        "vlc-2.0.7-vaapi-compat.patch")
+sha256sums=("6f6566ab6cd90d381395b7f0e401060b044cd3843e50ceb252b558a88e5d1f72"
+            "8bfecda9a95d514b3ceb225a172e82f1258bd1653bc60045b40fc5e68f6ccef3")
+
+
+build() {
+  #cd "${srcdir}/${basename}-${pkgver}"
+  cd "${srcdir}/${basename}-${pkgver/.a}"
+
+# Apply patches
+  patch -Np1 -i ../vlc-2.0.7-vaapi-compat.patch
+  sed -i -e 's:truetype/freefont:TTF:g' modules/text_renderer/freetype.c
+  sed -i -e 's:truetype/ttf-dejavu:TTF:g' modules/visualization/projectm.cpp
+
+# Source code build
+  #CFLAGS+="-I/usr/include/samba-4.0" CPPFLAGS+="-I/usr/include/samba-4.0" \
+  ./configure --prefix=/usr \
+              LUAC=/usr/bin/luac  LUA_LIBS="`pkg-config --libs lua`" RCC=/usr/bin/rcc-qt4 \
+              --enable-lua --enable-httpd --enable-alsa \
+              --enable-vlc --enable-vlm --enable-sout \
+              --enable-optimize-memory --enable-optimizations \
+              --enable-qt --enable-dvdread --enable-vcd \
+              --enable-mad --enable-a52 --enable-flac --enable-realrtsp --enable-live555 \
+              --enable-vorbis --enable-ogg --enable-mux_ogg --enable-theora \
+              --enable-xvideo --enable-xcb --enable-freetype \
+              --enable-libass --enable-fontconfig --enable-libxml2 --enable-screen \
+              --enable-libmpeg2 --enable-faad --enable-v4l2 \
+              --enable-avcodec --enable-avformat --enable-x264 \
+              --enable-lirc --enable-ncurses \
+              --disable-bluray --disable-linsys --disable-decklink --disable-libvnc \
+              --disable-libfreerdp --disable-omxil --disable-omxil-vout --disable-rpi-omxil \
+              --disable-crystalhd --disable-vdpau --disable-libva --disable-dxva2 --disable-vda \
+              --disable-fdkaac --disable-wasapi --disable-opensles --disable-audioqueue \
+              --disable-chromaprint --disable-ios-vout --disable-ios-vout2 \
+              --disable-udev --disable-dbus --disable-nls --disable-rpath --disable-mtp \
+              --disable-debug --disable-gprof --disable-cprof --disable-run-as-root \
+              --disable-coverage --disable-shout --disable-dvdnav --disable-oss \
+              --disable-libcddb --disable-growl --disable-notify \
+              --disable-taglib --disable-dv1394 --disable-dc1394 \
+              --disable-opencv --disable-smbclient --disable-gnomevfs \
+              --disable-vcdx --disable-libtar --disable-dca \
+              --disable-mkv --disable-mod --disable-mpc --disable-wma-fixed \
+              --disable-gme --disable-swscale --disable-shine \
+              --disable-postproc --disable-png --disable-fluidsynth --disable-quicksync \
+              --disable-twolame --disable-quicktime --disable-dirac --disable-schroedinger \
+              --disable-zvbi --disable-telx --disable-tiger --disable-kate \
+              --disable-glx --disable-tremor --disable-speex \
+              --disable-sdl-image --disable-sdl --disable-svg --disable-opus \
+              --disable-directx --disable-directfb --disable-pulse --disable-aa --disable-caca \
+              --disable-waveout --disable-macosx-audio --disable-macosx-vout --disable-jack \
+              --disable-upnp --disable-skins2 --disable-projectm --disable-goom --disable-vsxu \
+              --disable-macosx --disable-kva --disable-atmo --disable-kai \
+              --disable-bonjour --disable-libgcrypt --disable-gnutls --disable-update-check
+  make
+}
+
+package () {
+  #cd "${srcdir}/${basename}-${pkgver}"
+  cd "${srcdir}/${basename}-${pkgver/.a}"
+
+# Install VLC
+  make DESTDIR=${pkgdir}/ install
+
+# Install icons
+  for res in 16 32 48 128; do
+    #install -D -m644 ${srcdir}/vlc-${pkgver}/share/icons/${res}x${res}/vlc.png \
+    install -D -m644 ${srcdir}/vlc-${pkgver/.a}/share/icons/${res}x${res}/vlc.png \
+        ${pkgdir}/usr/share/icons/hicolor/${res}x${res}/apps/vlc.png
+  done
+}
